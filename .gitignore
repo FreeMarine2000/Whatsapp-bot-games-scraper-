@@ -1,0 +1,12 @@
+# Ignore heavy dependencies
+node_modules/
+
+# Ignore Mac system files
+.DS_Store
+
+# 🛑 CRITICAL: Ignore WhatsApp Session Data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Ignore logs
+npm-debug.log
