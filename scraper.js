@@ -1,9 +1,15 @@
 const puppeteer = require('puppeteer');
+function formatDate(isoString) {
+    const d = new Date(isoString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
 
 async function getEpicDeals() {
     console.log("🕵️‍♀️ Launching browser to hunt for deals...");
     
-    // Launch browser (Headless "new" is standard)
     const browser = await puppeteer.launch({
         headless: "new", 
         args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -12,7 +18,7 @@ async function getEpicDeals() {
     try {
         const page = await browser.newPage();
         
-        // 🎭 THE MASK: Pretend to be a real user
+        // 🎭 THE MASK: Pretend to be a real Windows user
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         await page.setViewport({ width: 1366, height: 768 });
 
@@ -31,7 +37,9 @@ async function getEpicDeals() {
             const promo = game.promotions?.promotionalOffers?.[0]?.promotionalOffers?.[0];
             if (promo) {
                 activeCount++;
-                report += `• *${game.title}*\n  (Ends: ${new Date(promo.endDate).toLocaleDateString()})\n  🔗 https://store.epicgames.com/p/${game.urlSlug}\n\n`;
+                // 👇 DATE FIX: en-GB forces DD/MM/YYYY
+                const date = new Date(promo.endDate).toLocaleDateString('en-GB');
+                report += `• *${game.title}*\n  (Ends: ${date})\n  🔗 https://store.epicgames.com/p/${game.urlSlug}\n\n`;
             }
         }
         if (activeCount === 0) report += "(No active free games right now)\n\n";
@@ -42,12 +50,14 @@ async function getEpicDeals() {
             const upcoming = game.promotions?.upcomingPromotionalOffers?.[0]?.promotionalOffers?.[0];
             if (upcoming) {
                 upcomingCount++;
-                report += `• ${game.title} (Free on ${new Date(upcoming.startDate).toLocaleDateString()})\n`;
+                // 👇 DATE FIX: en-GB forces DD/MM/YYYY
+                const date = new Date(upcoming.startDate).toLocaleDateString('en-GB');
+                report += `• ${game.title} (Free on ${date})\n`;
             }
         }
         if (upcomingCount === 0) report += "(No upcoming games found)\n";
 
-        // --- PART 2: GET FEATURED DISCOUNTS (Home Page) ---
+        // --- PART 2: GET FEATURED DISCOUNTS ---
         console.log("📉 Finding 'Featured Discounts'...");
         report += "\n--------------------\n*📉 FEATURED DISCOUNTS:*\n";
 
@@ -66,17 +76,16 @@ async function getEpicDeals() {
         });
 
         if (foundSection) {
-            await new Promise(r => setTimeout(r, 2000)); // Wait for lazy load
+            await new Promise(r => setTimeout(r, 2000));
         } else {
             console.log("⚠️ Header not found, blind scroll...");
             await page.evaluate(() => window.scrollBy(0, 1500));
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        // 🧠 SCRAPE LOGIC V2: Ignore "Base Game" labels
+        // 🧠 CLEAN UP TITLES
         const discounts = await page.evaluate(() => {
             const results = [];
-            // Find all badges like "-50%"
             const allBadges = Array.from(document.querySelectorAll('span, div'));
             const discountBadges = allBadges.filter(el => /^-\d{1,2}%$/.test(el.innerText.trim()));
 
@@ -85,23 +94,20 @@ async function getEpicDeals() {
 
                 const cardLink = badge.closest('a');
                 if (cardLink) {
-                    // Get all text lines from the card
-                    // Example lines: ["Base Game", "Super Meat Boy", "-91%", "₹26.05"]
                     const lines = cardLink.innerText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
                     
-                    // Filter out junk lines to find the real Title
+                    // Filter out garbage lines to find the real Title
                     const cleanLines = lines.filter(line => {
                         const l = line.toLowerCase();
-                        return !l.includes('%') &&        // Not the discount (-50%)
-                               !l.includes('₹') &&        // Not the price (₹500)
-                               !l.includes('$') &&        // Not dollars
-                               l !== "base game" &&       // Not category labels
-                               l !== "edition" &&
+                        return !l.includes('%') && 
+                               !l.includes('₹') && 
+                               !l.includes('$') &&
+                               l !== "base game" && 
+                               l !== "edition" && 
                                l !== "add-on" &&
                                l !== "now on epic";
                     });
 
-                    // The first remaining line is usually the Title
                     const title = cleanLines[0] || "Unknown Game";
 
                     if (!results.find(r => r.title === title)) {
