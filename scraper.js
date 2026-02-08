@@ -18,11 +18,11 @@ async function getEpicDeals() {
     try {
         const page = await browser.newPage();
         
-        // 🎭 THE MASK: Pretend to be a real Windows user
+        //  Pretends to be a real Windows user
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         await page.setViewport({ width: 1366, height: 768 });
 
-        // --- PART 1: GET FREE GAMES ---
+        // GET FREE GAMES
         console.log("🎁 Checking Free Games...");
         await page.goto('https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions', { waitUntil: 'networkidle0' });
         
@@ -37,7 +37,7 @@ async function getEpicDeals() {
             const promo = game.promotions?.promotionalOffers?.[0]?.promotionalOffers?.[0];
             if (promo) {
                 activeCount++;
-                // 👇 DATE FIX: en-GB forces DD/MM/YYYY
+                // DATE FIX: en-GB forces DD/MM/YYYY
                 const date = new Date(promo.endDate).toLocaleDateString('en-GB');
                 report += `• *${game.title}*\n  (Ends: ${date})\n  🔗 https://store.epicgames.com/p/${game.urlSlug}\n\n`;
             }
@@ -50,14 +50,14 @@ async function getEpicDeals() {
             const upcoming = game.promotions?.upcomingPromotionalOffers?.[0]?.promotionalOffers?.[0];
             if (upcoming) {
                 upcomingCount++;
-                // 👇 DATE FIX: en-GB forces DD/MM/YYYY
+                //  DATE FIX: en-GB forces DD/MM/YYYY
                 const date = new Date(upcoming.startDate).toLocaleDateString('en-GB');
                 report += `• ${game.title} (Free on ${date})\n`;
             }
         }
         if (upcomingCount === 0) report += "(No upcoming games found)\n";
 
-        // --- PART 2: GET FEATURED DISCOUNTS ---
+        // GET DISCOUNTS
         console.log("📉 Finding 'Featured Discounts'...");
         report += "\n--------------------\n*📉 FEATURED DISCOUNTS:*\n";
 
@@ -83,7 +83,7 @@ async function getEpicDeals() {
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        // 🧠 CLEAN UP TITLES
+        //  CLEAN UP TITLES
         const discounts = await page.evaluate(() => {
             const results = [];
             const allBadges = Array.from(document.querySelectorAll('span, div'));

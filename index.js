@@ -21,7 +21,7 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
     console.log('✅ Bot is online!');
     
-    // --- DAILY SCHEDULE ---
+    //  DAILY SCHEDULE 
     // This runs every day at 09:00 AM
     cron.schedule('0 9 * * *', async () => {
         console.log("⏰ It's 9AM! Time to hunt for deals.");
@@ -57,10 +57,10 @@ client.on('message_create', async (message) => {
     }
 });
 
-// --- SINGLE START POINT ---
+//  SINGLE START POINT 
 client.initialize();
 
-// --- SAFETY SHUTDOWN ---
+// SAFETY SHUTDOWN 
 process.on('SIGINT', async () => {
     console.log('(Ctrl+C) Closing browser safely...');
     await client.destroy();
